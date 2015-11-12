@@ -725,7 +725,7 @@ class ElasticSource extends DataSource {
 		$query = compact('query', 'size', 'sort', 'from', 'fields', 'script_fields', 'facets');
 
 		if ($Model->findQueryType === 'count') {
-			return (!empty($this->config['filteredCount']) ? ['query' => $query['query']] : $query['query']);
+			return ['query' => $query['query']];
 		}
 
 		return $query;
@@ -1691,6 +1691,9 @@ class ElasticSource extends DataSource {
 			case '404':
 				throw new MissingIndexException(array('class' => $this->config['index']));
 			default:
+				if (is_object($info->error)) {
+					$info->error = $info->error->root_cause[0]->reason;
+				}
 				throw new Exception("ElasticSearch Error: " . $info->error . ' Status: ' . $info->status);
 		}
 	}
