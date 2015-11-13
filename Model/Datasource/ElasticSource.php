@@ -673,6 +673,10 @@ class ElasticSource extends DataSource {
 				'key' => 'query',
 				'onEmpty' => 'skip'
 			),
+			'highlight' => array(
+				'key' => 'highlight',
+				'onEmpty' => 'skip'
+			)
 		);
 
 		$queryData['conditions'] = $this->parseConditions($Model, $queryData['conditions']);
@@ -722,7 +726,7 @@ class ElasticSource extends DataSource {
 			$query = array($type => compact('query', 'filter'));
 		}
 
-		$query = compact('query', 'size', 'sort', 'from', 'fields', 'script_fields', 'facets');
+		$query = compact('query', 'size', 'sort', 'from', 'fields', 'script_fields', 'facets', 'highlight');
 
 		if ($Model->findQueryType === 'count') {
 			return ['query' => $query['query']];
@@ -1512,7 +1516,7 @@ class ElasticSource extends DataSource {
 		}
 		if (!empty($results['hits'])) {
 			foreach($results['hits']['hits'] as &$result) {
-				$tmp = isset($result['_source']) ? $result['_source'] : array();
+				$tmp[$this->currentModel->alias] = isset($result['_source']) ? $result['_source'] : array();
 				if (!empty($result['fields'])) {
 					foreach ($result['fields'] as $field => $value) {
 						if (strpos($field, '.') && strpos($field, 'doc') !== 0) {
@@ -1522,8 +1526,13 @@ class ElasticSource extends DataSource {
 						}
 					}
 				}
+
 				if (empty($tmp[$this->currentModel->alias][$this->currentModel->primaryKey])) {
 					$tmp[$this->currentModel->alias][$this->currentModel->primaryKey] = $result['_id'];
+				}
+
+				if (!empty($result['highlight'])) {
+					$tmp['_highlight'] = $result['highlight'];
 				}
 
 				$result = $tmp;
